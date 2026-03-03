@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<package format="1" xmlns="https://wiki.freecad.org/Package_Metadata">
+  <name>Assistant</name>
+  <description>AI Assistant for FreeCAD — describe CAD operations in natural language and have an LLM generate executable Python code. Supports Anthropic Claude, OpenAI, and local models (Ollama, LM Studio).</description>
+  <version>0.1.0</version>
+  <date>2026-03-03</date>
+  <maintainer email="robhicks@github.com">robhicks</maintainer>
+  <license file="LICENSE">LGPL-2.1-or-later</license>
+  <url type="repository">https://github.com/robhicks/FreeCAD-Assistant</url>
+  <url type="bugtracker">https://github.com/robhicks/FreeCAD-Assistant/issues</url>
+  <icon>assistant/resources/icons/Assistant.svg</icon>
+
+  <content>
+    <preferencepack>
+      <name>Assistant</name>
+      <description>AI Assistant preferences</description>
+    </preferencepack>
+  </content>
+
+  <depend>FreeCAD</depend>
+
+  <freecadmin>0.21.0</freecadmin>
+</package>
