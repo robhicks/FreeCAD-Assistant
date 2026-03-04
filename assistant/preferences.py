@@ -19,7 +19,7 @@ class DlgSettingsAssistant(QtWidgets.QWidget):
 
         # Provider
         self._provider = QtWidgets.QComboBox()
-        self._provider.addItems(["anthropic", "openai", "custom"])
+        self._provider.addItems(["anthropic", "openai", "gemini", "custom"])
         self._provider.currentIndexChanged.connect(self._on_provider_changed)
         layout.addRow("Provider:", self._provider)
 
@@ -57,6 +57,7 @@ class DlgSettingsAssistant(QtWidgets.QWidget):
         placeholders = {
             "anthropic": ("https://api.anthropic.com", "claude-sonnet-4-20250514"),
             "openai": ("https://api.openai.com", "gpt-4o"),
+            "gemini": ("https://generativelanguage.googleapis.com/v1beta/openai", "gemini-2.5-flash"),
             "custom": ("http://localhost:11434", ""),
         }
         url_ph, model_ph = placeholders.get(provider, ("", ""))

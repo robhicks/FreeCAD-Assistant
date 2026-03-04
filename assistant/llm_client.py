@@ -15,6 +15,10 @@ DEFAULTS = {
         "base_url": "https://api.openai.com",
         "model": "gpt-4o",
     },
+    "gemini": {
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "model": "gemini-2.5-flash",
+    },
     "custom": {
         "base_url": "http://localhost:11434",
         "model": "",
@@ -40,7 +44,7 @@ class LLMClient:
         base_url = prefs.GetString("BaseUrl", "") or defaults["base_url"]
         model = prefs.GetString("Model", "") or defaults["model"]
 
-        if not api_key and provider in ("anthropic", "openai"):
+        if not api_key and provider in ("anthropic", "openai", "gemini"):
             raise ValueError(
                 "No API key configured. Please set one in "
                 "Edit > Preferences > Assistant."
