@@ -10,7 +10,7 @@ for FreeCAD based on the user's natural language request.
 
 RULES:
 - Do NOT include import statements — FreeCAD, FreeCADGui, Part, PartDesign, \
-Sketcher, Draft, Mesh, and doc (active document) are pre-loaded.
+Sketcher, Draft, Mesh, Arch, and doc (active document) are pre-loaded.
 - Use the variable `doc` for the active document.
 - All dimensions are in millimeters unless the user specifies otherwise.
 
@@ -88,10 +88,74 @@ Draft objects:
   wire = Draft.make_wire([FreeCAD.Vector(0,0,0), FreeCAD.Vector(10,10,0)])
   circle = Draft.make_circle(5)
 
+Arch/BIM objects:
+  wall = Arch.makeWall(length=1000, width=200, height=3000)
+  structure = Arch.makeStructure(length=500, width=500, height=3000)
+  window = Arch.makeWindowPreset("Open 1-pane", width=1200, height=1500,
+      h1=100, h2=100, h3=100, w1=200, w2=100, o1=0, o2=100,
+      placement=FreeCAD.Placement(FreeCAD.Vector(0, 0, 800),
+      FreeCAD.Rotation()))
+
 Working with selection:
   sel = FreeCADGui.Selection.getSelection()
   sel_ex = FreeCADGui.Selection.getSelectionEx()  # with sub-elements
 """
+
+
+_PROPERTY_MAP = {
+    "Part::Box": ["Length", "Width", "Height"],
+    "Part::Cylinder": ["Radius", "Height"],
+    "Part::Sphere": ["Radius"],
+    "Part::Cone": ["Radius1", "Radius2", "Height"],
+    "Part::Torus": ["Radius1", "Radius2"],
+    "PartDesign::Pad": ["Length"],
+    "PartDesign::Pocket": ["Length"],
+    "PartDesign::Fillet": ["Radius"],
+    "PartDesign::Chamfer": ["Size"],
+    "Arch::Wall": ["Length", "Width", "Height"],
+}
+
+_OBJECT_LIMIT = 30
+
+
+def _get_object_summary(obj):
+    """Return a one-line summary with key properties and placement."""
+    parts = []
+
+    # Dimension / shape properties
+    props = _PROPERTY_MAP.get(obj.TypeId, [])
+    for prop in props:
+        val = getattr(obj, prop, None)
+        if val is not None:
+            # Round floats for readability
+            if isinstance(val, float):
+                val = round(val, 2)
+            parts.append(f"{prop}={val}")
+
+    # Placement (skip if at origin)
+    try:
+        base = obj.Placement.Base
+        if base.x != 0 or base.y != 0 or base.z != 0:
+            parts.append(
+                f"Pos=({round(base.x, 2)}, {round(base.y, 2)}, {round(base.z, 2)})"
+            )
+    except AttributeError:
+        pass
+
+    suffix = f" [{', '.join(parts)}]" if parts else ""
+    return f"{obj.Label} ({obj.TypeId}){suffix}"
+
+
+def _get_parent_label(obj):
+    """Return the label of the object's parent group/body, or None."""
+    for parent in obj.InListRecursive:
+        if parent.TypeId in (
+            "PartDesign::Body",
+            "App::Part",
+            "App::DocumentObjectGroup",
+        ):
+            return parent.Label
+    return None
 
 
 def build_document_context():
@@ -102,21 +166,39 @@ def build_document_context():
     lines = [f"Active document: {doc.Name}"]
 
     objects = doc.Objects
-    if objects:
-        lines.append(f"Objects ({len(objects)}):")
-        for obj in objects[:20]:
-            type_name = obj.TypeId.split("::")[-1] if "::" in obj.TypeId else obj.TypeId
-            lines.append(f"  - {obj.Label} ({type_name})")
-        if len(objects) > 20:
-            lines.append(f"  ... and {len(objects) - 20} more")
-    else:
+    if not objects:
         lines.append("Document is empty.")
+        return "\n".join(lines)
 
+    lines.append(f"Objects ({len(objects)}):")
+    for obj in objects[:_OBJECT_LIMIT]:
+        summary = _get_object_summary(obj)
+        parent = _get_parent_label(obj)
+        indent = "    " if parent else "  "
+        prefix = f"[in {parent}] " if parent else ""
+        lines.append(f"{indent}- {prefix}{summary}")
+
+    if len(objects) > _OBJECT_LIMIT:
+        lines.append(
+            f"  ... and {len(objects) - _OBJECT_LIMIT} more objects (not shown)"
+        )
+
+    # Sub-element selection (faces, edges, etc.)
     try:
-        sel = FreeCADGui.Selection.getSelection()
-        if sel:
-            sel_labels = [obj.Label for obj in sel[:5]]
-            lines.append(f"Selected: {', '.join(sel_labels)}")
+        import FreeCADGui
+
+        sel_ex = FreeCADGui.Selection.getSelectionEx()
+        if sel_ex:
+            sel_parts = []
+            for s in sel_ex[:10]:
+                if s.SubElementNames:
+                    subs = list(s.SubElementNames[:10])
+                    if len(s.SubElementNames) > 10:
+                        subs.append("...")
+                    sel_parts.append(f"{s.Object.Label} [{', '.join(subs)}]")
+                else:
+                    sel_parts.append(s.Object.Label)
+            lines.append(f"Selected: {'; '.join(sel_parts)}")
     except Exception:
         pass
 
