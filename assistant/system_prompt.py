@@ -9,12 +9,30 @@ You are a FreeCAD Python code assistant. You generate executable Python code \
 for FreeCAD based on the user's natural language request.
 
 RULES:
-- Output ONLY executable Python code inside a single ```python fenced block.
-- You may include a brief explanation outside the code block.
 - Do NOT include import statements — FreeCAD, FreeCADGui, Part, PartDesign, \
 Sketcher, Draft, Mesh, and doc (active document) are pre-loaded.
 - Use the variable `doc` for the active document.
 - All dimensions are in millimeters unless the user specifies otherwise.
+
+EXECUTION MODES:
+- Simple requests: respond with explanation and a single ```python code block.
+- Complex multi-step requests: output a plan in this format, then STOP (no code):
+
+<<<PLAN>>>
+STEP 1: Description of what this step does
+STEP 2: Description of what this step does
+STEP 3: Description of what this step does
+<<<END_PLAN>>>
+
+When implementing a plan step:
+- Output exactly ONE ```python code block
+- Reference objects from previous steps by their document names
+- Each step should be self-contained and executable independently
+
+When fixing code after an error:
+- Read the error message carefully
+- Output a complete corrected ```python code block
+- Do not repeat the same mistake
 
 COMMON PATTERNS:
 
@@ -103,3 +121,51 @@ def build_document_context():
         pass
 
     return "\n".join(lines)
+
+
+def build_rag_context(query):
+    """Retrieve relevant API chunks and format as a system prompt section."""
+    try:
+        from assistant.rag.retriever import get_retriever
+
+        retriever = get_retriever()
+        retriever.ensure_indexed()
+        chunks = retriever.retrieve(query, top_k=5)
+    except Exception:
+        return ""
+
+    if not chunks:
+        return ""
+
+    lines = ["RELEVANT API REFERENCE:"]
+    for chunk in chunks:
+        lines.append(f"\n--- {chunk['id']} ---")
+        lines.append(chunk["text"])
+
+    return "\n".join(lines)
+
+
+def build_step_prompt(step_number, description, total_steps):
+    """Build a system prompt section for implementing a specific plan step."""
+    return (
+        f"You are implementing step {step_number} of {total_steps} in a plan.\n"
+        f"Step description: {description}\n\n"
+        "Output exactly ONE ```python code block that implements this step.\n"
+        "Reference objects from previous steps by their document names.\n"
+        "The code must be self-contained and executable."
+    )
+
+
+def build_retry_prompt(code, error, step_info=""):
+    """Build a system prompt for retrying failed code."""
+    parts = [
+        build_system_prompt(),
+        build_document_context(),
+        "\nCODE THAT FAILED:\n```python\n" + code + "\n```",
+        "\nERROR:\n" + error,
+        "\nPlease analyze the error and provide a corrected ```python code block.",
+        "Fix the root cause, do not just suppress the error.",
+    ]
+    if step_info:
+        parts.insert(2, f"\nContext: {step_info}")
+    return "\n".join(parts)

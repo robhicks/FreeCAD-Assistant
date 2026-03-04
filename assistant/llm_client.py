@@ -113,3 +113,15 @@ class LLMClient:
             raise RuntimeError(f"API error {e.code}: {msg}") from e
         except urllib.error.URLError as e:
             raise RuntimeError(f"Connection error: {e.reason}") from e
+
+    def get_embedding(self, text):
+        """Get an embedding vector for text using the RAG embedding client.
+
+        Returns list[float] or None if the provider doesn't support embeddings.
+        """
+        from assistant.rag.embeddings import EmbeddingClient
+
+        client = EmbeddingClient.from_preferences()
+        if client is None:
+            return None
+        return client.embed(text)

@@ -52,6 +52,16 @@ class DlgSettingsAssistant(QtWidgets.QWidget):
         )
         layout.addRow("", self._auto_execute)
 
+        # Max retries
+        self._max_retries = QtWidgets.QSpinBox()
+        self._max_retries.setMinimum(0)
+        self._max_retries.setMaximum(10)
+        self._max_retries.setValue(3)
+        self._max_retries.setToolTip(
+            "Maximum number of auto-retry attempts when generated code fails"
+        )
+        layout.addRow("Max retries:", self._max_retries)
+
     def _on_provider_changed(self, index):
         provider = self._provider.currentText()
         placeholders = {
@@ -71,6 +81,7 @@ class DlgSettingsAssistant(QtWidgets.QWidget):
         prefs.SetString("BaseUrl", self._base_url.text())
         prefs.SetString("Model", self._model.text())
         prefs.SetBool("AutoExecute", self._auto_execute.isChecked())
+        prefs.SetInt("MaxRetries", self._max_retries.value())
 
     def loadSettings(self):
         prefs = FreeCAD.ParamGet(PREFS_PATH)
@@ -82,4 +93,5 @@ class DlgSettingsAssistant(QtWidgets.QWidget):
         self._base_url.setText(prefs.GetString("BaseUrl", ""))
         self._model.setText(prefs.GetString("Model", ""))
         self._auto_execute.setChecked(prefs.GetBool("AutoExecute", False))
+        self._max_retries.setValue(prefs.GetInt("MaxRetries", 3))
         self._on_provider_changed(self._provider.currentIndex())

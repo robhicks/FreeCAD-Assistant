@@ -21,6 +21,9 @@ class ChatWidget(QtWidgets.QWidget):
         self._code_blocks = []  # extracted code blocks from responses
         self._exec_results = {}  # {block_index: (success, stdout, stderr)}
         self._worker = None
+        self._orchestrator = None
+        self._current_plan = None
+        self._plan_preamble = ""
         self._setup_ui()
 
     def _setup_ui(self):
@@ -65,38 +68,41 @@ class ChatWidget(QtWidgets.QWidget):
         input_layout.addLayout(btn_layout)
         layout.addLayout(input_layout)
 
+    def _get_orchestrator(self):
+        """Lazy-init orchestrator and connect signals."""
+        if self._orchestrator is None:
+            from assistant.orchestrator import Orchestrator
+
+            self._orchestrator = Orchestrator(parent=self)
+            self._orchestrator.status_changed.connect(self._on_status_changed)
+            self._orchestrator.plan_received.connect(self._on_plan_received)
+            self._orchestrator.direct_response.connect(self._on_direct_response)
+            self._orchestrator.step_completed.connect(self._on_step_completed)
+            self._orchestrator.retry_started.connect(self._on_retry_started)
+            self._orchestrator.all_done.connect(self._on_all_done)
+            self._orchestrator.error_occurred.connect(self._on_error)
+        return self._orchestrator
+
     def _on_send(self):
         text = self._input.toPlainText().strip()
         if not text:
             return
-        if self._worker and self._worker.isRunning():
+
+        orch = self._get_orchestrator()
+        if orch.state != "idle":
             return
 
         self._input.clear()
         self._history.append({"role": "user", "content": text})
         self._render_messages()
-        self._status.setText("Thinking...")
         self._send_btn.setEnabled(False)
 
-        from assistant.llm_client import LLMClient
-        from assistant.llm_worker import LLMWorker
-        from assistant.system_prompt import build_system_prompt, build_document_context
+        orch.submit(text, self._history)
 
-        try:
-            client = LLMClient.from_preferences()
-        except ValueError as e:
-            self._on_error(str(e))
-            return
+    def _on_status_changed(self, text):
+        self._status.setText(text)
 
-        system = build_system_prompt() + "\n\n" + build_document_context()
-
-        self._worker = LLMWorker(client, list(self._history), system, parent=self)
-        self._worker.response_ready.connect(self._on_response)
-        self._worker.error_occurred.connect(self._on_error)
-        self._worker.start()
-
-    def _on_response(self, text):
-        self._status.setText("")
+    def _on_direct_response(self, text):
         self._send_btn.setEnabled(True)
         self._history.append({"role": "assistant", "content": text})
 
@@ -108,6 +114,40 @@ class ChatWidget(QtWidgets.QWidget):
         if prefs.GetBool("AutoExecute", False):
             for idx in range(start_idx, len(self._code_blocks)):
                 self._execute_code(idx)
+
+    def _on_plan_received(self, plan, preamble):
+        self._send_btn.setEnabled(True)
+        self._current_plan = plan
+        self._plan_preamble = preamble
+        self._render_messages()
+
+        # Auto-execute plan if enabled
+        prefs = FreeCAD.ParamGet("User parameter:BaseApp/Preferences/Mod/Assistant")
+        if prefs.GetBool("AutoExecute", False):
+            self._get_orchestrator().execute_plan()
+
+    def _on_step_completed(self, index, success, stdout, stderr):
+        if self._current_plan and index < len(self._current_plan.steps):
+            step = self._current_plan.steps[index]
+            step.result = (success, stdout, stderr)
+        self._render_messages()
+
+    def _on_retry_started(self, step_index, attempt):
+        self._render_messages()
+
+    def _on_all_done(self):
+        self._send_btn.setEnabled(True)
+        self._status.setText("")
+
+        # Add summary to history
+        if self._current_plan:
+            done = sum(1 for s in self._current_plan.steps if s.status == "done")
+            total = len(self._current_plan.steps)
+            self._history.append({
+                "role": "assistant",
+                "content": f"Plan completed: {done}/{total} steps succeeded.",
+            })
+        self._render_messages()
 
     def _on_error(self, msg):
         self._status.setText("")
@@ -121,8 +161,12 @@ class ChatWidget(QtWidgets.QWidget):
         self._history.clear()
         self._code_blocks.clear()
         self._exec_results.clear()
+        self._current_plan = None
+        self._plan_preamble = ""
         self._browser.clear()
         self._status.setText("")
+        if self._orchestrator:
+            self._orchestrator.cancel()
 
     def _on_anchor_clicked(self, url):
         url_str = url.toString()
@@ -138,6 +182,12 @@ class ChatWidget(QtWidgets.QWidget):
             self._execute_code(index)
         elif scheme == "copy":
             self._copy_code(index)
+        elif scheme == "plan-execute":
+            self._get_orchestrator().execute_plan()
+        elif scheme == "plan-cancel":
+            self._get_orchestrator().cancel()
+            self._current_plan = None
+            self._render_messages()
 
     def _execute_code(self, index):
         if index < 0 or index >= len(self._code_blocks):
@@ -176,6 +226,18 @@ class ChatWidget(QtWidgets.QWidget):
             ".actions { margin: 2px 0 8px 0; }"
             ".actions a { color: #1976d2; text-decoration: none; "
             "margin-right: 12px; font-size: 12px; }"
+            ".step-pending { color: #757575; }"
+            ".step-running { color: #1565c0; font-weight: bold; }"
+            ".step-done { color: #2e7d32; }"
+            ".step-failed { color: #c62828; }"
+            ".retry-badge { background: #fff3e0; color: #e65100; "
+            "padding: 1px 6px; border-radius: 8px; font-size: 11px; "
+            "margin-left: 6px; }"
+            ".plan-box { background: #e3f2fd; padding: 10px; margin: 4px 0; "
+            "border-radius: 8px; border-left: 4px solid #1565c0; }"
+            ".plan-actions { margin-top: 8px; }"
+            ".plan-actions a { color: #1565c0; text-decoration: none; "
+            "font-weight: bold; margin-right: 16px; font-size: 13px; }"
             "</style></head><body>"
         )
 
@@ -195,9 +257,75 @@ class ChatWidget(QtWidgets.QWidget):
                     f"{rendered}</div>"
                 )
 
+        # Render current plan if active
+        if self._current_plan:
+            parts.append(self._render_plan())
+
         parts.append("</body></html>")
         self._browser.setHtml("".join(parts))
         self._scroll_to_bottom()
+
+    def _render_plan(self):
+        """Render plan steps with status indicators."""
+        plan = self._current_plan
+        lines = ['<div class="plan-box">']
+
+        if self._plan_preamble:
+            escaped = html.escape(self._plan_preamble)
+            escaped = re.sub(r"\*\*(.*?)\*\*", r"<b>\1</b>", escaped)
+            escaped = escaped.replace("\n", "<br/>")
+            lines.append(f"<b>Assistant:</b><br/>{escaped}<br/><br/>")
+
+        lines.append("<b>Execution Plan:</b><br/>")
+        for step in plan.steps:
+            icon = {
+                "pending": "&#9711;",   # circle
+                "running": "&#9654;",   # play
+                "done": "&#10004;",     # check
+                "failed": "&#10008;",   # cross
+            }.get(step.status, "&#9711;")
+
+            css = f"step-{step.status}"
+            retry_html = ""
+            if step.retries > 0:
+                retry_html = f'<span class="retry-badge">retry {step.retries}</span>'
+
+            lines.append(
+                f'<div class="{css}">'
+                f"{icon} Step {step.number}: {html.escape(step.description)}"
+                f"{retry_html}</div>"
+            )
+
+            # Show step execution result
+            if step.result:
+                success, stdout, stderr = step.result
+                if stdout:
+                    lines.append(
+                        '<div style="background:#e8f5e9; padding:4px 8px; '
+                        'margin:2px 0 2px 20px; border-radius:4px; '
+                        'font-family:monospace; font-size:11px;">'
+                        f"{html.escape(stdout)}</div>"
+                    )
+                if stderr and not success:
+                    lines.append(
+                        '<div style="background:#ffebee; padding:4px 8px; '
+                        'margin:2px 0 2px 20px; border-radius:4px; '
+                        'font-family:monospace; font-size:11px;">'
+                        f"{html.escape(stderr)}</div>"
+                    )
+
+        # Plan action buttons
+        orch = self._get_orchestrator()
+        if orch.state == "showing_plan":
+            lines.append(
+                '<div class="plan-actions">'
+                '<a href="plan-execute:0">[Execute Plan]</a>'
+                '<a href="plan-cancel:0">[Cancel]</a>'
+                "</div>"
+            )
+
+        lines.append("</div>")
+        return "".join(lines)
 
     def _render_assistant_content(self, text):
         segments = re.split(r"(```(?:python)?\n.*?```)", text, flags=re.DOTALL)

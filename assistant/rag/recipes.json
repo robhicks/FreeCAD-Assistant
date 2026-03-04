@@ -1,0 +1,668 @@
+[
+  {
+    "title": "Create a box primitive",
+    "description": "Create a Part::Box with specified dimensions.",
+    "code": "box = doc.addObject(\"Part::Box\", \"Box\")\nbox.Length = 10\nbox.Width = 20\nbox.Height = 30\ndoc.recompute()",
+    "tags": ["Part", "box", "primitive"]
+  },
+  {
+    "title": "Create a cylinder primitive",
+    "description": "Create a Part::Cylinder with radius and height.",
+    "code": "cyl = doc.addObject(\"Part::Cylinder\", \"Cylinder\")\ncyl.Radius = 5\ncyl.Height = 20\ndoc.recompute()",
+    "tags": ["Part", "cylinder", "primitive"]
+  },
+  {
+    "title": "Create a sphere primitive",
+    "description": "Create a Part::Sphere with a given radius.",
+    "code": "sphere = doc.addObject(\"Part::Sphere\", \"Sphere\")\nsphere.Radius = 10\ndoc.recompute()",
+    "tags": ["Part", "sphere", "primitive"]
+  },
+  {
+    "title": "Create a cone primitive",
+    "description": "Create a Part::Cone with two radii and height.",
+    "code": "cone = doc.addObject(\"Part::Cone\", \"Cone\")\ncone.Radius1 = 10\ncone.Radius2 = 5\ncone.Height = 15\ndoc.recompute()",
+    "tags": ["Part", "cone", "primitive"]
+  },
+  {
+    "title": "Create a torus primitive",
+    "description": "Create a Part::Torus with major and minor radii.",
+    "code": "torus = doc.addObject(\"Part::Torus\", \"Torus\")\ntorus.Radius1 = 10\ntorus.Radius2 = 3\ndoc.recompute()",
+    "tags": ["Part", "torus", "primitive"]
+  },
+  {
+    "title": "Boolean cut (subtract)",
+    "description": "Subtract one shape from another using Part::Cut.",
+    "code": "cut = doc.addObject(\"Part::Cut\", \"Cut\")\ncut.Base = doc.getObject(\"Box\")\ncut.Tool = doc.getObject(\"Cylinder\")\ndoc.recompute()",
+    "tags": ["Part", "boolean", "cut", "subtract"]
+  },
+  {
+    "title": "Boolean fuse (union)",
+    "description": "Combine two shapes using Part::Fuse.",
+    "code": "fuse = doc.addObject(\"Part::Fuse\", \"Fuse\")\nfuse.Base = doc.getObject(\"Box\")\nfuse.Tool = doc.getObject(\"Cylinder\")\ndoc.recompute()",
+    "tags": ["Part", "boolean", "fuse", "union"]
+  },
+  {
+    "title": "Boolean common (intersection)",
+    "description": "Get the intersection of two shapes using Part::Common.",
+    "code": "common = doc.addObject(\"Part::Common\", \"Common\")\ncommon.Base = doc.getObject(\"Box\")\ncommon.Tool = doc.getObject(\"Cylinder\")\ndoc.recompute()",
+    "tags": ["Part", "boolean", "common", "intersection"]
+  },
+  {
+    "title": "Multi-fuse (union of many shapes)",
+    "description": "Fuse multiple shapes at once using Part::MultiFuse.",
+    "code": "mf = doc.addObject(\"Part::MultiFuse\", \"MultiFuse\")\nmf.Shapes = [doc.getObject(\"Box\"), doc.getObject(\"Cylinder\"), doc.getObject(\"Sphere\")]\ndoc.recompute()",
+    "tags": ["Part", "boolean", "multifuse"]
+  },
+  {
+    "title": "Multi-cut (subtract many shapes)",
+    "description": "Cut multiple tools from a base shape using Part::MultiCommon or iterative cuts.",
+    "code": "cut1 = doc.addObject(\"Part::Cut\", \"Cut1\")\ncut1.Base = doc.getObject(\"Box\")\ncut1.Tool = doc.getObject(\"Cylinder\")\ncut2 = doc.addObject(\"Part::Cut\", \"Cut2\")\ncut2.Base = cut1\ncut2.Tool = doc.getObject(\"Sphere\")\ndoc.recompute()",
+    "tags": ["Part", "boolean", "cut", "multi"]
+  },
+  {
+    "title": "Set object placement (position and rotation)",
+    "description": "Position an object using FreeCAD.Placement with translation and rotation.",
+    "code": "obj = doc.getObject(\"Box\")\nobj.Placement = FreeCAD.Placement(\n    FreeCAD.Vector(10, 20, 30),\n    FreeCAD.Rotation(FreeCAD.Vector(0, 0, 1), 45)\n)",
+    "tags": ["placement", "position", "rotation", "transform"]
+  },
+  {
+    "title": "Move object by offset",
+    "description": "Translate an object by a vector offset.",
+    "code": "obj = doc.getObject(\"Box\")\nobj.Placement.Base = obj.Placement.Base + FreeCAD.Vector(10, 0, 0)",
+    "tags": ["placement", "move", "translate"]
+  },
+  {
+    "title": "PartDesign body with padded sketch",
+    "description": "Create a PartDesign Body, add a sketch on XY plane, draw a rectangle, and pad it.",
+    "code": "body = doc.addObject(\"PartDesign::Body\", \"Body\")\nsketch = body.newObject(\"Sketcher::SketchObject\", \"Sketch\")\nsketch.AttachmentSupport = [(body.Origin.OriginFeatures[3], \"\")]\nsketch.MapMode = \"FlatFace\"\n\n# Rectangle corners\nsketch.addGeometry(Part.LineSegment(FreeCAD.Vector(0, 0, 0), FreeCAD.Vector(20, 0, 0)))\nsketch.addGeometry(Part.LineSegment(FreeCAD.Vector(20, 0, 0), FreeCAD.Vector(20, 10, 0)))\nsketch.addGeometry(Part.LineSegment(FreeCAD.Vector(20, 10, 0), FreeCAD.Vector(0, 10, 0)))\nsketch.addGeometry(Part.LineSegment(FreeCAD.Vector(0, 10, 0), FreeCAD.Vector(0, 0, 0)))\n\n# Constrain corners\nfor i in range(4):\n    sketch.addConstraint(Sketcher.Constraint(\"Coincident\", i, 2, (i+1) % 4, 1))\n\npad = body.newObject(\"PartDesign::Pad\", \"Pad\")\npad.Profile = sketch\npad.Length = 15\ndoc.recompute()",
+    "tags": ["PartDesign", "body", "sketch", "pad", "rectangle"]
+  },
+  {
+    "title": "PartDesign pocket (cut into body)",
+    "description": "Add a pocket to an existing PartDesign body by sketching on a face.",
+    "code": "body = doc.getObject(\"Body\")\nsketch = body.newObject(\"Sketcher::SketchObject\", \"PocketSketch\")\nsketch.AttachmentSupport = [(doc.getObject(\"Pad\"), \"Face6\")]\nsketch.MapMode = \"FlatFace\"\n\n# Circle for pocket\nsketch.addGeometry(Part.Circle(FreeCAD.Vector(10, 5, 0), FreeCAD.Vector(0, 0, 1), 3))\n\npocket = body.newObject(\"PartDesign::Pocket\", \"Pocket\")\npocket.Profile = sketch\npocket.Length = 5\ndoc.recompute()",
+    "tags": ["PartDesign", "pocket", "sketch", "cut"]
+  },
+  {
+    "title": "PartDesign revolution",
+    "description": "Revolve a sketch profile around an axis to create a solid of revolution.",
+    "code": "body = doc.addObject(\"PartDesign::Body\", \"Body\")\nsketch = body.newObject(\"Sketcher::SketchObject\", \"Sketch\")\nsketch.AttachmentSupport = [(body.Origin.OriginFeatures[3], \"\")]\nsketch.MapMode = \"FlatFace\"\n\n# Half-circle profile for revolution\nsketch.addGeometry(Part.LineSegment(FreeCAD.Vector(5, 0, 0), FreeCAD.Vector(10, 0, 0)))\nsketch.addGeometry(Part.ArcOfCircle(Part.Circle(FreeCAD.Vector(7.5, 0, 0), FreeCAD.Vector(0, 0, 1), 2.5), 0, 3.14159))\nsketch.addGeometry(Part.LineSegment(FreeCAD.Vector(5, 0, 0), FreeCAD.Vector(5, 0, 0)))\n\nrev = body.newObject(\"PartDesign::Revolution\", \"Revolution\")\nrev.Profile = sketch\nrev.Axis = (sketch, [\"N_Axis\"])\nrev.Angle = 360\ndoc.recompute()",
+    "tags": ["PartDesign", "revolution", "revolve", "lathe"]
+  },
+  {
+    "title": "Sketcher line segment",
+    "description": "Add a line segment to a sketch.",
+    "code": "sketch.addGeometry(Part.LineSegment(\n    FreeCAD.Vector(0, 0, 0),\n    FreeCAD.Vector(10, 0, 0)\n))",
+    "tags": ["Sketcher", "line", "geometry"]
+  },
+  {
+    "title": "Sketcher circle",
+    "description": "Add a circle to a sketch.",
+    "code": "sketch.addGeometry(Part.Circle(\n    FreeCAD.Vector(0, 0, 0),\n    FreeCAD.Vector(0, 0, 1),\n    5\n))",
+    "tags": ["Sketcher", "circle", "geometry"]
+  },
+  {
+    "title": "Sketcher arc",
+    "description": "Add an arc of circle to a sketch.",
+    "code": "import math\nsketch.addGeometry(Part.ArcOfCircle(\n    Part.Circle(FreeCAD.Vector(0, 0, 0), FreeCAD.Vector(0, 0, 1), 5),\n    0, math.pi / 2\n))",
+    "tags": ["Sketcher", "arc", "geometry"]
+  },
+  {
+    "title": "Sketcher constraint: fixed distance",
+    "description": "Constrain a line length in a sketch.",
+    "code": "sketch.addConstraint(Sketcher.Constraint(\"Distance\", 0, 20.0))",
+    "tags": ["Sketcher", "constraint", "distance", "dimension"]
+  },
+  {
+    "title": "Sketcher constraint: horizontal and vertical",
+    "description": "Make sketch lines horizontal or vertical.",
+    "code": "sketch.addConstraint(Sketcher.Constraint(\"Horizontal\", 0))\nsketch.addConstraint(Sketcher.Constraint(\"Vertical\", 1))",
+    "tags": ["Sketcher", "constraint", "horizontal", "vertical"]
+  },
+  {
+    "title": "Sketcher constraint: coincident points",
+    "description": "Constrain two points to be at the same location.",
+    "code": "sketch.addConstraint(Sketcher.Constraint(\"Coincident\", 0, 2, 1, 1))",
+    "tags": ["Sketcher", "constraint", "coincident"]
+  },
+  {
+    "title": "Sketcher constraint: equal length",
+    "description": "Make two edges equal in length.",
+    "code": "sketch.addConstraint(Sketcher.Constraint(\"Equal\", 0, 2))",
+    "tags": ["Sketcher", "constraint", "equal"]
+  },
+  {
+    "title": "Sketcher constraint: symmetric",
+    "description": "Make geometry symmetric about a line.",
+    "code": "sketch.addConstraint(Sketcher.Constraint(\"Symmetric\", 0, 1, 1, 1, 2, 1))",
+    "tags": ["Sketcher", "constraint", "symmetric"]
+  },
+  {
+    "title": "Part fillet on edges",
+    "description": "Apply a fillet to selected edges of a Part shape.",
+    "code": "obj = doc.getObject(\"Box\")\nfillet = doc.addObject(\"Part::Fillet\", \"Fillet\")\nfillet.Base = obj\nfillet.Shape = obj.Shape.makeFillet(2.0, obj.Shape.Edges)\ndoc.recompute()",
+    "tags": ["Part", "fillet", "edge", "round"]
+  },
+  {
+    "title": "Part chamfer on edges",
+    "description": "Apply a chamfer to edges of a Part shape.",
+    "code": "obj = doc.getObject(\"Box\")\nchamfer = doc.addObject(\"Part::Chamfer\", \"Chamfer\")\nchamfer.Base = obj\nchamfer.Shape = obj.Shape.makeChamfer(2.0, obj.Shape.Edges)\ndoc.recompute()",
+    "tags": ["Part", "chamfer", "edge", "bevel"]
+  },
+  {
+    "title": "PartDesign fillet",
+    "description": "Fillet edges in a PartDesign body workflow.",
+    "code": "body = doc.getObject(\"Body\")\nfillet = body.newObject(\"PartDesign::Fillet\", \"Fillet\")\nfillet.Base = (doc.getObject(\"Pad\"), [\"Edge1\", \"Edge2\"])\nfillet.Radius = 2.0\ndoc.recompute()",
+    "tags": ["PartDesign", "fillet", "edge"]
+  },
+  {
+    "title": "PartDesign chamfer",
+    "description": "Chamfer edges in a PartDesign body workflow.",
+    "code": "body = doc.getObject(\"Body\")\nchamfer = body.newObject(\"PartDesign::Chamfer\", \"Chamfer\")\nchamfer.Base = (doc.getObject(\"Pad\"), [\"Edge1\"])\nchamfer.Size = 2.0\ndoc.recompute()",
+    "tags": ["PartDesign", "chamfer", "edge"]
+  },
+  {
+    "title": "Draft wire (polyline)",
+    "description": "Create a Draft wire from a list of points.",
+    "code": "points = [FreeCAD.Vector(0, 0, 0), FreeCAD.Vector(10, 0, 0), FreeCAD.Vector(10, 10, 0), FreeCAD.Vector(0, 10, 0)]\nwire = Draft.make_wire(points, closed=True)\ndoc.recompute()",
+    "tags": ["Draft", "wire", "polyline"]
+  },
+  {
+    "title": "Draft circle",
+    "description": "Create a Draft circle with a given radius.",
+    "code": "circle = Draft.make_circle(10)\ndoc.recompute()",
+    "tags": ["Draft", "circle"]
+  },
+  {
+    "title": "Draft rectangle",
+    "description": "Create a Draft rectangle.",
+    "code": "rect = Draft.make_rectangle(20, 10)\ndoc.recompute()",
+    "tags": ["Draft", "rectangle"]
+  },
+  {
+    "title": "Draft polygon",
+    "description": "Create a regular polygon with Draft.",
+    "code": "polygon = Draft.make_polygon(6, radius=10)\ndoc.recompute()",
+    "tags": ["Draft", "polygon", "hexagon"]
+  },
+  {
+    "title": "Draft text annotation",
+    "description": "Add a text annotation in Draft.",
+    "code": "text = Draft.make_text([\"Hello\", \"World\"], FreeCAD.Vector(0, 0, 0))\ndoc.recompute()",
+    "tags": ["Draft", "text", "annotation"]
+  },
+  {
+    "title": "Draft array (rectangular)",
+    "description": "Create a rectangular array of an object.",
+    "code": "obj = doc.getObject(\"Box\")\narray = Draft.make_ortho_array(obj, FreeCAD.Vector(15, 0, 0), FreeCAD.Vector(0, 15, 0), FreeCAD.Vector(0, 0, 0), 3, 2, 1)\ndoc.recompute()",
+    "tags": ["Draft", "array", "rectangular", "pattern"]
+  },
+  {
+    "title": "Draft polar array",
+    "description": "Create a polar (circular) array of an object.",
+    "code": "obj = doc.getObject(\"Box\")\narray = Draft.make_polar_array(obj, 6, 360, FreeCAD.Vector(0, 0, 0), FreeCAD.Vector(0, 0, 1))\ndoc.recompute()",
+    "tags": ["Draft", "array", "polar", "circular", "pattern"]
+  },
+  {
+    "title": "Draft mirror",
+    "description": "Mirror an object across a plane.",
+    "code": "obj = doc.getObject(\"Box\")\nmirror = Draft.mirror(obj, FreeCAD.Vector(0, 0, 0), FreeCAD.Vector(1, 0, 0))\ndoc.recompute()",
+    "tags": ["Draft", "mirror", "symmetry"]
+  },
+  {
+    "title": "Part extrude a wire",
+    "description": "Extrude a 2D wire into a 3D solid.",
+    "code": "wire = doc.getObject(\"Wire\")\nextrude = doc.addObject(\"Part::Extrusion\", \"Extrude\")\nextrude.Base = wire\nextrude.Dir = FreeCAD.Vector(0, 0, 10)\nextrude.Solid = True\ndoc.recompute()",
+    "tags": ["Part", "extrude", "wire", "solid"]
+  },
+  {
+    "title": "Create shape from Part.makeBox",
+    "description": "Directly create a shape using Part API and add to document.",
+    "code": "shape = Part.makeBox(10, 20, 30)\nobj = doc.addObject(\"Part::Feature\", \"MyBox\")\nobj.Shape = shape\ndoc.recompute()",
+    "tags": ["Part", "shape", "makeBox", "feature"]
+  },
+  {
+    "title": "Create a pipe/sweep along a path",
+    "description": "Sweep a profile along a path using Part::Sweep.",
+    "code": "sweep = doc.addObject(\"Part::Sweep\", \"Sweep\")\nsweep.Sections = [doc.getObject(\"Circle\")]\nsweep.Spine = (doc.getObject(\"Wire\"), [\"Edge1\"])\nsweep.Solid = True\ndoc.recompute()",
+    "tags": ["Part", "sweep", "pipe", "path"]
+  },
+  {
+    "title": "Create a loft between profiles",
+    "description": "Loft between two or more wire profiles.",
+    "code": "loft = doc.addObject(\"Part::Loft\", \"Loft\")\nloft.Sections = [doc.getObject(\"Wire1\"), doc.getObject(\"Wire2\")]\nloft.Solid = True\ndoc.recompute()",
+    "tags": ["Part", "loft", "transition"]
+  },
+  {
+    "title": "Working with selection",
+    "description": "Get selected objects and sub-elements from the FreeCAD GUI.",
+    "code": "sel = FreeCADGui.Selection.getSelection()\nif sel:\n    obj = sel[0]\n    print(f\"Selected: {obj.Label} ({obj.TypeId})\")\n\nsel_ex = FreeCADGui.Selection.getSelectionEx()\nfor s in sel_ex:\n    for sub in s.SubElementNames:\n        print(f\"  Sub-element: {sub}\")",
+    "tags": ["selection", "GUI", "interactive"]
+  },
+  {
+    "title": "Create a new document",
+    "description": "Create a new FreeCAD document.",
+    "code": "new_doc = FreeCAD.newDocument(\"MyDocument\")\nFreeCAD.setActiveDocument(new_doc.Name)",
+    "tags": ["document", "new", "FreeCAD"]
+  },
+  {
+    "title": "Export to STEP file",
+    "description": "Export objects to a STEP file.",
+    "code": "import Part\nobjs = [doc.getObject(\"Body\")]\nPart.export(objs, \"/tmp/export.step\")",
+    "tags": ["export", "STEP", "file", "Part"]
+  },
+  {
+    "title": "Export to STL file",
+    "description": "Export a mesh or shape to STL for 3D printing.",
+    "code": "obj = doc.getObject(\"Body\")\nobj.Shape.exportStl(\"/tmp/export.stl\")",
+    "tags": ["export", "STL", "mesh", "3dprint"]
+  },
+  {
+    "title": "Create a compound of shapes",
+    "description": "Group multiple shapes into a Part::Compound.",
+    "code": "compound = doc.addObject(\"Part::Compound\", \"Compound\")\ncompound.Links = [doc.getObject(\"Box\"), doc.getObject(\"Cylinder\")]\ndoc.recompute()",
+    "tags": ["Part", "compound", "group"]
+  },
+  {
+    "title": "Sketch on XZ plane",
+    "description": "Attach a sketch to the XZ plane in a PartDesign body.",
+    "code": "body = doc.getObject(\"Body\")\nsketch = body.newObject(\"Sketcher::SketchObject\", \"SketchXZ\")\nsketch.AttachmentSupport = [(body.Origin.OriginFeatures[4], \"\")]\nsketch.MapMode = \"FlatFace\"\ndoc.recompute()",
+    "tags": ["Sketcher", "PartDesign", "XZ", "plane", "attachment"]
+  },
+  {
+    "title": "Sketch on YZ plane",
+    "description": "Attach a sketch to the YZ plane in a PartDesign body.",
+    "code": "body = doc.getObject(\"Body\")\nsketch = body.newObject(\"Sketcher::SketchObject\", \"SketchYZ\")\nsketch.AttachmentSupport = [(body.Origin.OriginFeatures[5], \"\")]\nsketch.MapMode = \"FlatFace\"\ndoc.recompute()",
+    "tags": ["Sketcher", "PartDesign", "YZ", "plane", "attachment"]
+  },
+  {
+    "title": "PartDesign linear pattern",
+    "description": "Create a linear pattern of a feature in PartDesign.",
+    "code": "body = doc.getObject(\"Body\")\npattern = body.newObject(\"PartDesign::LinearPattern\", \"LinearPattern\")\npattern.Originals = [doc.getObject(\"Pad\")]\npattern.Direction = (doc.getObject(\"Sketch\"), [\"N_Axis\"])\npattern.Length = 50\npattern.Occurrences = 5\ndoc.recompute()",
+    "tags": ["PartDesign", "pattern", "linear", "array"]
+  },
+  {
+    "title": "PartDesign polar pattern",
+    "description": "Create a polar pattern of a feature in PartDesign.",
+    "code": "body = doc.getObject(\"Body\")\npattern = body.newObject(\"PartDesign::PolarPattern\", \"PolarPattern\")\npattern.Originals = [doc.getObject(\"Pocket\")]\npattern.Axis = (doc.getObject(\"Sketch\"), [\"N_Axis\"])\npattern.Angle = 360\npattern.Occurrences = 6\ndoc.recompute()",
+    "tags": ["PartDesign", "pattern", "polar", "circular"]
+  },
+  {
+    "title": "PartDesign mirrored feature",
+    "description": "Mirror a feature across a plane in PartDesign.",
+    "code": "body = doc.getObject(\"Body\")\nmirror = body.newObject(\"PartDesign::Mirrored\", \"Mirrored\")\nmirror.Originals = [doc.getObject(\"Pad\")]\nmirror.MirrorPlane = (doc.getObject(\"Sketch\"), [\"V_Axis\"])\ndoc.recompute()",
+    "tags": ["PartDesign", "mirror", "symmetry"]
+  },
+  {
+    "title": "Create a Part::Wedge",
+    "description": "Create a wedge shape (truncated pyramid).",
+    "code": "wedge = doc.addObject(\"Part::Wedge\", \"Wedge\")\nwedge.Xmin = 0\nwedge.Xmax = 10\nwedge.Ymin = 0\nwedge.Ymax = 10\nwedge.Zmin = 0\nwedge.Zmax = 10\nwedge.X2min = 2\nwedge.X2max = 8\nwedge.Z2min = 2\nwedge.Z2max = 8\ndoc.recompute()",
+    "tags": ["Part", "wedge", "primitive", "truncated"]
+  },
+  {
+    "title": "Create a helix shape",
+    "description": "Create a helix wire using Part.makeHelix for springs or threads.",
+    "code": "helix = Part.makeHelix(5, 40, 10)\nobj = doc.addObject(\"Part::Feature\", \"Helix\")\nobj.Shape = helix\ndoc.recompute()",
+    "tags": ["Part", "helix", "spring", "thread"]
+  },
+  {
+    "title": "Create a Part::Prism",
+    "description": "Create a regular prism (e.g., hexagonal) using Part::Prism.",
+    "code": "prism = doc.addObject(\"Part::Prism\", \"Prism\")\nprism.Polygon = 6\nprism.Circumradius = 10\nprism.Height = 20\ndoc.recompute()",
+    "tags": ["Part", "prism", "hexagonal", "primitive"]
+  },
+  {
+    "title": "Shell a solid (hollow out)",
+    "description": "Create a hollow shell from a solid shape using Part.makeShell or Part::Thickness.",
+    "code": "obj = doc.getObject(\"Box\")\nthickness = doc.addObject(\"Part::Thickness\", \"Shell\")\nthickness.Value = -1\nthickness.Join = 0\nthickness.Faces = (obj, [\"Face6\"])\ndoc.recompute()",
+    "tags": ["Part", "shell", "hollow", "thickness"]
+  },
+  {
+    "title": "Offset a 2D shape",
+    "description": "Create a 2D offset of a wire shape using Part.makeOffset2D.",
+    "code": "wire = doc.getObject(\"Wire\")\noffset_shape = wire.Shape.makeOffset2D(2.0)\nobj = doc.addObject(\"Part::Feature\", \"Offset\")\nobj.Shape = offset_shape\ndoc.recompute()",
+    "tags": ["Part", "offset", "2D", "wire"]
+  },
+  {
+    "title": "Create a BSpline curve",
+    "description": "Create a B-Spline curve through control points.",
+    "code": "pts = [FreeCAD.Vector(0, 0, 0), FreeCAD.Vector(5, 10, 0), FreeCAD.Vector(15, 10, 0), FreeCAD.Vector(20, 0, 0)]\nbspline = Part.BSplineCurve()\nbspline.interpolate(pts)\nobj = doc.addObject(\"Part::Feature\", \"BSpline\")\nobj.Shape = bspline.toShape()\ndoc.recompute()",
+    "tags": ["Part", "BSpline", "curve", "spline"]
+  },
+  {
+    "title": "Section (slice) a shape with a plane",
+    "description": "Slice a solid shape with a plane to produce a cross-section wire.",
+    "code": "obj = doc.getObject(\"Box\")\nplane = Part.Plane(FreeCAD.Vector(0, 0, 5), FreeCAD.Vector(0, 0, 1))\nsection = obj.Shape.section(plane.toShape())\nresult = doc.addObject(\"Part::Feature\", \"Section\")\nresult.Shape = section\ndoc.recompute()",
+    "tags": ["Part", "section", "slice", "cross-section", "plane"]
+  },
+  {
+    "title": "Mesh from shape for 3D printing",
+    "description": "Convert a Part shape to a Mesh object.",
+    "code": "import MeshPart\nobj = doc.getObject(\"Box\")\nmesh_data = MeshPart.meshFromShape(Shape=obj.Shape, LinearDeflection=0.1, AngularDeflection=0.5)\nmesh_obj = doc.addObject(\"Mesh::Feature\", \"Mesh\")\nmesh_obj.Mesh = mesh_data\ndoc.recompute()",
+    "tags": ["Mesh", "MeshPart", "tessellate", "3dprint", "STL"]
+  },
+  {
+    "title": "Import a STEP file",
+    "description": "Import geometry from a STEP file into the active document.",
+    "code": "import Part\nPart.insert(\"/path/to/file.step\", doc.Name)\ndoc.recompute()",
+    "tags": ["import", "STEP", "file", "Part"]
+  },
+  {
+    "title": "Import an STL mesh",
+    "description": "Import an STL mesh file into the active document.",
+    "code": "import Mesh\nMesh.insert(\"/path/to/file.stl\", doc.Name)\ndoc.recompute()",
+    "tags": ["import", "STL", "Mesh", "file"]
+  },
+  {
+    "title": "Set object color and transparency",
+    "description": "Change the display color and transparency of an object.",
+    "code": "obj = doc.getObject(\"Box\")\nobj.ViewObject.ShapeColor = (1.0, 0.0, 0.0, 0.0)\nobj.ViewObject.Transparency = 50",
+    "tags": ["color", "appearance", "transparency", "ViewObject"]
+  },
+  {
+    "title": "Set line width and point size",
+    "description": "Change the display line width and point size of an object.",
+    "code": "obj = doc.getObject(\"Wire\")\nobj.ViewObject.LineWidth = 3.0\nobj.ViewObject.PointSize = 5.0\nobj.ViewObject.LineColor = (0.0, 0.0, 1.0, 0.0)",
+    "tags": ["color", "line", "display", "ViewObject"]
+  },
+  {
+    "title": "Hide and show objects",
+    "description": "Toggle object visibility in the 3D view.",
+    "code": "obj = doc.getObject(\"Box\")\nobj.ViewObject.Visibility = False\n\nobj2 = doc.getObject(\"Cylinder\")\nobj2.ViewObject.Visibility = True",
+    "tags": ["visibility", "hide", "show", "ViewObject"]
+  },
+  {
+    "title": "Get shape measurements (volume, area, center of mass)",
+    "description": "Query geometric properties of a shape.",
+    "code": "obj = doc.getObject(\"Box\")\nshape = obj.Shape\nprint(f\"Volume: {shape.Volume}\")\nprint(f\"Surface area: {shape.Area}\")\nprint(f\"Center of mass: {shape.CenterOfMass}\")\nprint(f\"Bounding box: {shape.BoundBox}\")",
+    "tags": ["measurement", "volume", "area", "center", "bounding box"]
+  },
+  {
+    "title": "Measure distance between two shapes",
+    "description": "Compute the minimum distance between two shapes.",
+    "code": "obj1 = doc.getObject(\"Box\")\nobj2 = doc.getObject(\"Cylinder\")\ndist = obj1.Shape.distToShape(obj2.Shape)\nprint(f\"Minimum distance: {dist[0]}\")",
+    "tags": ["measurement", "distance", "shape"]
+  },
+  {
+    "title": "List all edges and faces of a shape",
+    "description": "Iterate over edges and faces for inspection or selection.",
+    "code": "obj = doc.getObject(\"Box\")\nfor i, edge in enumerate(obj.Shape.Edges):\n    print(f\"Edge{i+1}: length={edge.Length:.2f}\")\nfor i, face in enumerate(obj.Shape.Faces):\n    print(f\"Face{i+1}: area={face.Area:.2f}\")",
+    "tags": ["shape", "edges", "faces", "topology", "inspection"]
+  },
+  {
+    "title": "Sketcher B-spline",
+    "description": "Add a B-spline curve to a sketch using control points.",
+    "code": "pts = [FreeCAD.Vector(0, 0, 0), FreeCAD.Vector(5, 10, 0), FreeCAD.Vector(15, 10, 0), FreeCAD.Vector(20, 0, 0)]\nsketch.addGeometry(Part.BSplineCurve(pts, None, None, False, 3, None, False), False)",
+    "tags": ["Sketcher", "BSpline", "spline", "geometry"]
+  },
+  {
+    "title": "Sketcher ellipse",
+    "description": "Add an ellipse to a sketch.",
+    "code": "sketch.addGeometry(Part.Ellipse(\n    FreeCAD.Vector(10, 0, 0),\n    FreeCAD.Vector(0, 5, 0),\n    FreeCAD.Vector(0, 0, 0)\n))",
+    "tags": ["Sketcher", "ellipse", "geometry"]
+  },
+  {
+    "title": "Sketcher constraint: fix point position",
+    "description": "Lock a point to specific X, Y coordinates.",
+    "code": "sketch.addConstraint(Sketcher.Constraint(\"DistanceX\", 0, 1, 10.0))\nsketch.addConstraint(Sketcher.Constraint(\"DistanceY\", 0, 1, 5.0))",
+    "tags": ["Sketcher", "constraint", "position", "lock", "DistanceX", "DistanceY"]
+  },
+  {
+    "title": "Sketcher constraint: tangent",
+    "description": "Make two curves tangent to each other.",
+    "code": "sketch.addConstraint(Sketcher.Constraint(\"Tangent\", 0, 1))",
+    "tags": ["Sketcher", "constraint", "tangent"]
+  },
+  {
+    "title": "Sketcher constraint: perpendicular",
+    "description": "Make two lines perpendicular to each other.",
+    "code": "sketch.addConstraint(Sketcher.Constraint(\"Perpendicular\", 0, 1))",
+    "tags": ["Sketcher", "constraint", "perpendicular", "right angle"]
+  },
+  {
+    "title": "Sketcher constraint: parallel",
+    "description": "Make two lines parallel.",
+    "code": "sketch.addConstraint(Sketcher.Constraint(\"Parallel\", 0, 1))",
+    "tags": ["Sketcher", "constraint", "parallel"]
+  },
+  {
+    "title": "Sketcher constraint: radius",
+    "description": "Set the radius of a circle or arc in a sketch.",
+    "code": "sketch.addConstraint(Sketcher.Constraint(\"Radius\", 0, 5.0))",
+    "tags": ["Sketcher", "constraint", "radius", "dimension"]
+  },
+  {
+    "title": "Sketcher constraint: angle between lines",
+    "description": "Constrain the angle between two lines.",
+    "code": "import math\nsketch.addConstraint(Sketcher.Constraint(\"Angle\", 0, 1, math.radians(45)))",
+    "tags": ["Sketcher", "constraint", "angle", "dimension"]
+  },
+  {
+    "title": "Sketcher external geometry reference",
+    "description": "Add an external edge reference to a sketch for constraining against.",
+    "code": "sketch.addExternal(\"Pad\", \"Edge1\")",
+    "tags": ["Sketcher", "external", "reference", "edge"]
+  },
+  {
+    "title": "Sketcher construction geometry",
+    "description": "Toggle geometry to construction mode (used for constraints, not solid).",
+    "code": "idx = sketch.addGeometry(Part.LineSegment(\n    FreeCAD.Vector(0, 0, 0), FreeCAD.Vector(20, 0, 0)\n))\nsketch.toggleConstruction(idx)",
+    "tags": ["Sketcher", "construction", "auxiliary"]
+  },
+  {
+    "title": "Sketcher slot (rounded rectangle)",
+    "description": "Create a slot shape (two semicircles connected by lines) in a sketch.",
+    "code": "import math\nsketch.addGeometry(Part.LineSegment(FreeCAD.Vector(0, 3, 0), FreeCAD.Vector(20, 3, 0)))\nsketch.addGeometry(Part.LineSegment(FreeCAD.Vector(0, -3, 0), FreeCAD.Vector(20, -3, 0)))\nsketch.addGeometry(Part.ArcOfCircle(Part.Circle(FreeCAD.Vector(0, 0, 0), FreeCAD.Vector(0, 0, 1), 3), math.pi/2, 3*math.pi/2))\nsketch.addGeometry(Part.ArcOfCircle(Part.Circle(FreeCAD.Vector(20, 0, 0), FreeCAD.Vector(0, 0, 1), 3), -math.pi/2, math.pi/2))",
+    "tags": ["Sketcher", "slot", "rounded", "oblong"]
+  },
+  {
+    "title": "PartDesign additive pipe (sweep along sketch)",
+    "description": "Create a PartDesign AdditivePipe by sweeping a profile along a path.",
+    "code": "body = doc.getObject(\"Body\")\npipe = body.newObject(\"PartDesign::AdditivePipe\", \"AdditivePipe\")\npipe.Profile = doc.getObject(\"ProfileSketch\")\npipe.Spine = (doc.getObject(\"PathSketch\"), [\"Edge1\"])\ndoc.recompute()",
+    "tags": ["PartDesign", "pipe", "sweep", "additive"]
+  },
+  {
+    "title": "PartDesign additive loft",
+    "description": "Create a PartDesign AdditiveLoft between two or more sketches.",
+    "code": "body = doc.getObject(\"Body\")\nloft = body.newObject(\"PartDesign::AdditiveLoft\", \"AdditiveLoft\")\nloft.Profile = doc.getObject(\"Sketch1\")\nloft.Sections = [doc.getObject(\"Sketch2\")]\ndoc.recompute()",
+    "tags": ["PartDesign", "loft", "additive", "transition"]
+  },
+  {
+    "title": "PartDesign hole feature",
+    "description": "Create a standard hole (counterbore, countersink, or through) in PartDesign.",
+    "code": "body = doc.getObject(\"Body\")\nhole = body.newObject(\"PartDesign::Hole\", \"Hole\")\nhole.Profile = doc.getObject(\"HoleSketch\")\nhole.Threaded = False\nhole.Diameter = 5.0\nhole.Depth = 10.0\nhole.DepthType = 0\ndoc.recompute()",
+    "tags": ["PartDesign", "hole", "drill", "counterbore"]
+  },
+  {
+    "title": "PartDesign thickness (shell a body)",
+    "description": "Hollow out a PartDesign body using Thickness feature.",
+    "code": "body = doc.getObject(\"Body\")\nthick = body.newObject(\"PartDesign::Thickness\", \"Thickness\")\nthick.Base = (doc.getObject(\"Pad\"), [\"Face6\"])\nthick.Value = 1.0\nthick.Join = 0\ndoc.recompute()",
+    "tags": ["PartDesign", "thickness", "shell", "hollow"]
+  },
+  {
+    "title": "PartDesign datum plane",
+    "description": "Create an offset datum plane for sketching at an arbitrary location.",
+    "code": "body = doc.getObject(\"Body\")\ndatum = body.newObject(\"PartDesign::Plane\", \"DatumPlane\")\ndatum.AttachmentSupport = [(body.Origin.OriginFeatures[3], \"\")]\ndatum.MapMode = \"FlatFace\"\ndatum.AttachmentOffset = FreeCAD.Placement(FreeCAD.Vector(0, 0, 25), FreeCAD.Rotation())\ndoc.recompute()",
+    "tags": ["PartDesign", "datum", "plane", "reference", "offset"]
+  },
+  {
+    "title": "Draft dimension annotation",
+    "description": "Add a linear dimension annotation between two points.",
+    "code": "dim = Draft.make_linear_dimension(\n    FreeCAD.Vector(0, 0, 0),\n    FreeCAD.Vector(20, 0, 0),\n    FreeCAD.Vector(10, 5, 0)\n)\ndoc.recompute()",
+    "tags": ["Draft", "dimension", "annotation", "measurement"]
+  },
+  {
+    "title": "Draft BSpline curve",
+    "description": "Create a Draft B-Spline through points.",
+    "code": "points = [FreeCAD.Vector(0, 0, 0), FreeCAD.Vector(5, 10, 0), FreeCAD.Vector(15, 10, 0), FreeCAD.Vector(20, 0, 0)]\nbspline = Draft.make_bspline(points)\ndoc.recompute()",
+    "tags": ["Draft", "BSpline", "curve", "spline"]
+  },
+  {
+    "title": "Draft ellipse",
+    "description": "Create a Draft ellipse with major and minor radii.",
+    "code": "ellipse = Draft.make_ellipse(15, 10)\ndoc.recompute()",
+    "tags": ["Draft", "ellipse"]
+  },
+  {
+    "title": "Draft point",
+    "description": "Create a Draft point object at a location.",
+    "code": "point = Draft.make_point(10, 20, 0)\ndoc.recompute()",
+    "tags": ["Draft", "point"]
+  },
+  {
+    "title": "Draft clone",
+    "description": "Create a clone of an existing object.",
+    "code": "obj = doc.getObject(\"Box\")\nclone = Draft.clone(obj)\nclone.Placement.Base = FreeCAD.Vector(30, 0, 0)\ndoc.recompute()",
+    "tags": ["Draft", "clone", "copy", "duplicate"]
+  },
+  {
+    "title": "Draft upgrade (join wires to face)",
+    "description": "Upgrade Draft objects (e.g., join wires into a face).",
+    "code": "obj = doc.getObject(\"Wire\")\nresult = Draft.upgrade([obj])\ndoc.recompute()",
+    "tags": ["Draft", "upgrade", "face", "join"]
+  },
+  {
+    "title": "Draft downgrade (explode compound)",
+    "description": "Downgrade Draft objects (e.g., explode compound into individual shapes).",
+    "code": "obj = doc.getObject(\"Compound\")\nresult = Draft.downgrade([obj])\ndoc.recompute()",
+    "tags": ["Draft", "downgrade", "explode", "split"]
+  },
+  {
+    "title": "Draft scale an object",
+    "description": "Scale an object by a factor using Draft.scale.",
+    "code": "obj = doc.getObject(\"Box\")\nscaled = Draft.scale(obj, FreeCAD.Vector(2, 2, 2), center=FreeCAD.Vector(0, 0, 0), copy=True)\ndoc.recompute()",
+    "tags": ["Draft", "scale", "resize", "transform"]
+  },
+  {
+    "title": "Draft rotate an object",
+    "description": "Rotate an object using Draft.rotate.",
+    "code": "obj = doc.getObject(\"Box\")\nDraft.rotate(obj, 45, center=FreeCAD.Vector(0, 0, 0), axis=FreeCAD.Vector(0, 0, 1), copy=False)\ndoc.recompute()",
+    "tags": ["Draft", "rotate", "transform"]
+  },
+  {
+    "title": "Draft move an object",
+    "description": "Move an object using Draft.move.",
+    "code": "obj = doc.getObject(\"Box\")\nDraft.move(obj, FreeCAD.Vector(10, 20, 0), copy=False)\ndoc.recompute()",
+    "tags": ["Draft", "move", "translate", "transform"]
+  },
+  {
+    "title": "Draft path array",
+    "description": "Array objects along a path curve.",
+    "code": "obj = doc.getObject(\"Box\")\npath = doc.getObject(\"Wire\")\narray = Draft.make_path_array(obj, path, 5)\ndoc.recompute()",
+    "tags": ["Draft", "array", "path", "pattern"]
+  },
+  {
+    "title": "Rotate object around arbitrary axis",
+    "description": "Rotate an object around an arbitrary axis through a point.",
+    "code": "import math\nobj = doc.getObject(\"Box\")\naxis = FreeCAD.Vector(1, 1, 0).normalize()\ncenter = FreeCAD.Vector(5, 5, 0)\nrot = FreeCAD.Rotation(axis, 30)\nobj.Placement = FreeCAD.Placement(center, rot, -center).multiply(obj.Placement)",
+    "tags": ["placement", "rotation", "axis", "transform"]
+  },
+  {
+    "title": "Copy an object",
+    "description": "Create an independent copy of an object in the document.",
+    "code": "import Part as PartMod\nobj = doc.getObject(\"Box\")\nnew_obj = doc.addObject(\"Part::Feature\", \"BoxCopy\")\nnew_obj.Shape = obj.Shape.copy()\nnew_obj.Placement.Base = FreeCAD.Vector(30, 0, 0)\ndoc.recompute()",
+    "tags": ["copy", "duplicate", "shape"]
+  },
+  {
+    "title": "Group objects in a folder",
+    "description": "Organize objects by placing them in a document group.",
+    "code": "group = doc.addObject(\"App::DocumentObjectGroup\", \"MyGroup\")\ngroup.addObject(doc.getObject(\"Box\"))\ngroup.addObject(doc.getObject(\"Cylinder\"))",
+    "tags": ["group", "folder", "organize", "document"]
+  },
+  {
+    "title": "Add custom properties to an object",
+    "description": "Attach custom properties (parameters) to any document object.",
+    "code": "obj = doc.getObject(\"Box\")\nobj.addProperty(\"App::PropertyFloat\", \"MyParam\", \"Custom\", \"A custom parameter\")\nobj.MyParam = 42.0\nobj.addProperty(\"App::PropertyString\", \"Note\", \"Custom\", \"A note\")\nobj.Note = \"Created by AI\"",
+    "tags": ["property", "custom", "parameter", "metadata"]
+  },
+  {
+    "title": "Rename an object label",
+    "description": "Change the human-readable label of an object.",
+    "code": "obj = doc.getObject(\"Box\")\nobj.Label = \"Main Housing\"",
+    "tags": ["label", "rename", "document"]
+  },
+  {
+    "title": "Save document to file",
+    "description": "Save the active document to a FreeCAD file.",
+    "code": "doc.saveAs(\"/tmp/myproject.FCStd\")",
+    "tags": ["save", "file", "document", "FCStd"]
+  },
+  {
+    "title": "Set camera view",
+    "description": "Set the 3D view to a standard orientation and fit all objects.",
+    "code": "FreeCADGui.activeDocument().activeView().viewIsometric()\nFreeCADGui.SendMsgToActiveView(\"ViewFit\")",
+    "tags": ["view", "camera", "isometric", "fit", "GUI"]
+  },
+  {
+    "title": "Set specific camera orientations",
+    "description": "Set the 3D view to front, top, right, or other standard views.",
+    "code": "view = FreeCADGui.activeDocument().activeView()\nview.viewFront()\n# Other options: viewTop(), viewRight(), viewRear(), viewBottom(), viewLeft()",
+    "tags": ["view", "camera", "front", "top", "right", "GUI"]
+  },
+  {
+    "title": "Select objects programmatically",
+    "description": "Add objects to the selection from code.",
+    "code": "FreeCADGui.Selection.clearSelection()\nFreeCADGui.Selection.addSelection(doc.getObject(\"Box\"))\nFreeCADGui.Selection.addSelection(doc.getObject(\"Cylinder\"), \"Face1\")",
+    "tags": ["selection", "select", "GUI"]
+  },
+  {
+    "title": "Iterate all objects in document",
+    "description": "Loop over all objects in the active document and print their info.",
+    "code": "for obj in doc.Objects:\n    print(f\"{obj.Name} ({obj.TypeId}): Label={obj.Label}\")",
+    "tags": ["document", "objects", "iterate", "list"]
+  },
+  {
+    "title": "Delete an object",
+    "description": "Remove an object from the document.",
+    "code": "doc.removeObject(\"Box\")\ndoc.recompute()",
+    "tags": ["delete", "remove", "object", "document"]
+  },
+  {
+    "title": "Create a pipe with circular cross-section",
+    "description": "Create a hollow pipe by sweeping a circular wire along a path.",
+    "code": "import math\n# Create path\npath_pts = [FreeCAD.Vector(0, 0, 0), FreeCAD.Vector(0, 0, 50)]\npath = Draft.make_wire(path_pts)\n\n# Create outer and inner circles\nouter = Draft.make_circle(10)\ninner = Draft.make_circle(8)\n\n# Extrude both and subtract\nouter_ext = doc.addObject(\"Part::Extrusion\", \"OuterPipe\")\nouter_ext.Base = outer\nouter_ext.Dir = FreeCAD.Vector(0, 0, 50)\nouter_ext.Solid = True\n\ninner_ext = doc.addObject(\"Part::Extrusion\", \"InnerPipe\")\ninner_ext.Base = inner\ninner_ext.Dir = FreeCAD.Vector(0, 0, 50)\ninner_ext.Solid = True\n\npipe = doc.addObject(\"Part::Cut\", \"Pipe\")\npipe.Base = outer_ext\npipe.Tool = inner_ext\ndoc.recompute()",
+    "tags": ["pipe", "tube", "hollow", "extrude", "cut"]
+  },
+  {
+    "title": "Create a plate with holes",
+    "description": "Create a flat plate with an array of mounting holes.",
+    "code": "# Base plate\nplate = doc.addObject(\"Part::Box\", \"Plate\")\nplate.Length = 100\nplate.Width = 60\nplate.Height = 5\n\n# Create holes by cutting cylinders\nbase = plate\nfor i, (x, y) in enumerate([(10, 10), (90, 10), (10, 50), (90, 50)]):\n    hole = doc.addObject(\"Part::Cylinder\", f\"Hole{i}\")\n    hole.Radius = 3\n    hole.Height = 10\n    hole.Placement.Base = FreeCAD.Vector(x, y, -1)\n    cut = doc.addObject(\"Part::Cut\", f\"Cut{i}\")\n    cut.Base = base\n    cut.Tool = hole\n    base = cut\n\ndoc.recompute()",
+    "tags": ["plate", "holes", "mounting", "pattern", "cut"]
+  },
+  {
+    "title": "Create an L-bracket",
+    "description": "Create an L-shaped bracket from two boxes fused together.",
+    "code": "vert = doc.addObject(\"Part::Box\", \"Vertical\")\nvert.Length = 30\nvert.Width = 5\nvert.Height = 40\n\nhoriz = doc.addObject(\"Part::Box\", \"Horizontal\")\nhoriz.Length = 30\nhoriz.Width = 40\nhoriz.Height = 5\n\nbracket = doc.addObject(\"Part::Fuse\", \"LBracket\")\nbracket.Base = vert\nbracket.Tool = horiz\ndoc.recompute()",
+    "tags": ["bracket", "L-shape", "fuse", "structural"]
+  },
+  {
+    "title": "Export to IGES file",
+    "description": "Export objects to an IGES file format.",
+    "code": "import Part\nobjs = [doc.getObject(\"Body\")]\nPart.export(objs, \"/tmp/export.iges\")",
+    "tags": ["export", "IGES", "file", "Part"]
+  },
+  {
+    "title": "Create a Part::RegularPolygon wire",
+    "description": "Create a regular polygon wire using Part API.",
+    "code": "import math\nn_sides = 8\nradius = 10\npts = [FreeCAD.Vector(radius * math.cos(2 * math.pi * i / n_sides),\n                      radius * math.sin(2 * math.pi * i / n_sides), 0)\n       for i in range(n_sides)]\npts.append(pts[0])\nwire = Part.makePolygon(pts)\nobj = doc.addObject(\"Part::Feature\", \"Octagon\")\nobj.Shape = wire\ndoc.recompute()",
+    "tags": ["Part", "polygon", "wire", "regular", "octagon"]
+  },
+  {
+    "title": "Create a thread (helical sweep)",
+    "description": "Create a simple thread by sweeping a triangle along a helix.",
+    "code": "import math\n\n# Helix path\nhelix = Part.makeHelix(2, 20, 5)\n\n# Triangle profile at helix start\np0 = FreeCAD.Vector(5, 0, 0)\np1 = FreeCAD.Vector(6, 0, 0)\np2 = FreeCAD.Vector(5, 0, 1)\ntri = Part.makePolygon([p0, p1, p2, p0])\nface = Part.Face(Part.Wire(tri))\n\n# Sweep\nthread = Part.Wire(helix).makePipeShell([face.OuterWire], True, True)\nobj = doc.addObject(\"Part::Feature\", \"Thread\")\nobj.Shape = thread\ndoc.recompute()",
+    "tags": ["thread", "helix", "sweep", "screw"]
+  },
+  {
+    "title": "Mesh Boolean operations",
+    "description": "Perform Boolean operations on Mesh objects.",
+    "code": "import Mesh\nm1 = doc.getObject(\"Mesh1\").Mesh\nm2 = doc.getObject(\"Mesh2\").Mesh\n\n# Union\nunion_mesh = Mesh.Mesh(m1)\nunion_mesh.unite(m2)\nresult = doc.addObject(\"Mesh::Feature\", \"MeshUnion\")\nresult.Mesh = union_mesh\ndoc.recompute()",
+    "tags": ["Mesh", "boolean", "union", "subtract"]
+  },
+  {
+    "title": "Undo and redo operations",
+    "description": "Undo or redo the last operation on the document.",
+    "code": "doc.undo()\n# To redo:\n# doc.redo()",
+    "tags": ["undo", "redo", "document", "history"]
+  }
+]
