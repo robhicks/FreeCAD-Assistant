@@ -49,7 +49,7 @@ class ChatWidget(QtWidgets.QWidget):
 
         self._input = ChatInput(self)
         self._input.setPlaceholderText("Describe what you want to create...")
-        self._input.setMaximumHeight(80)
+        self._input.setMinimumHeight(120)
         self._input.send_requested.connect(self._on_send)
         input_layout.addWidget(self._input, 1)
 
@@ -59,6 +59,10 @@ class ChatWidget(QtWidgets.QWidget):
         self._send_btn = QtWidgets.QPushButton("Send")
         self._send_btn.clicked.connect(self._on_send)
         btn_layout.addWidget(self._send_btn)
+
+        self._undo_btn = QtWidgets.QPushButton("Undo")
+        self._undo_btn.clicked.connect(self._on_undo)
+        btn_layout.addWidget(self._undo_btn)
 
         self._clear_btn = QtWidgets.QPushButton("Clear")
         self._clear_btn.clicked.connect(self._on_clear)
@@ -164,6 +168,18 @@ class ChatWidget(QtWidgets.QWidget):
             {"role": "assistant", "content": f"**Error:** {msg}"}
         )
         self._render_messages()
+
+    def _on_undo(self):
+        doc = FreeCAD.ActiveDocument
+        if not doc:
+            self._status.setText("No active document.")
+            return
+        if not doc.HasPendingTransaction and doc.UndoCount > 0:
+            doc.undo()
+            doc.recompute()
+            self._status.setText("Undo successful.")
+        else:
+            self._status.setText("Nothing to undo.")
 
     def _on_clear(self):
         self._history.clear()
@@ -336,6 +352,10 @@ class ChatWidget(QtWidgets.QWidget):
         return "".join(lines)
 
     def _render_assistant_content(self, text):
+        prefs = FreeCAD.ParamGet(
+            "User parameter:BaseApp/Preferences/Mod/Assistant"
+        )
+        show_code = prefs.GetBool("ShowCode", True)
         segments = re.split(r"(```(?:python)?\n.*?```)", text, flags=re.DOTALL)
         result = []
         for segment in segments:
@@ -344,13 +364,20 @@ class ChatWidget(QtWidgets.QWidget):
                 code = m.group(1).rstrip("\n")
                 idx = len(self._code_blocks)
                 self._code_blocks.append(code)
-                result.append(f"<pre>{html.escape(code)}</pre>")
-                result.append(
-                    '<div class="actions">'
-                    f'<a href="execute:{idx}">[Execute]</a>'
-                    f'<a href="copy:{idx}">[Copy]</a>'
-                    "</div>"
-                )
+                if show_code:
+                    result.append(f"<pre>{html.escape(code)}</pre>")
+                    result.append(
+                        '<div class="actions">'
+                        f'<a href="execute:{idx}">[Execute]</a>'
+                        f'<a href="copy:{idx}">[Copy]</a>'
+                        "</div>"
+                    )
+                else:
+                    result.append(
+                        '<div class="actions">'
+                        f'<a href="execute:{idx}">[Execute Code]</a>'
+                        "</div>"
+                    )
                 # Show execution result if available
                 if idx in self._exec_results:
                     success, stdout, stderr = self._exec_results[idx]

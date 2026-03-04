@@ -52,6 +52,13 @@ class DlgSettingsAssistant(QtWidgets.QWidget):
         )
         layout.addRow("", self._auto_execute)
 
+        # Show code
+        self._show_code = QtWidgets.QCheckBox(
+            "Show generated code in chat"
+        )
+        self._show_code.setChecked(True)
+        layout.addRow("", self._show_code)
+
         # Max retries
         self._max_retries = QtWidgets.QSpinBox()
         self._max_retries.setMinimum(0)
@@ -81,6 +88,7 @@ class DlgSettingsAssistant(QtWidgets.QWidget):
         prefs.SetString("BaseUrl", self._base_url.text())
         prefs.SetString("Model", self._model.text())
         prefs.SetBool("AutoExecute", self._auto_execute.isChecked())
+        prefs.SetBool("ShowCode", self._show_code.isChecked())
         prefs.SetInt("MaxRetries", self._max_retries.value())
 
     def loadSettings(self):
@@ -93,5 +101,6 @@ class DlgSettingsAssistant(QtWidgets.QWidget):
         self._base_url.setText(prefs.GetString("BaseUrl", ""))
         self._model.setText(prefs.GetString("Model", ""))
         self._auto_execute.setChecked(prefs.GetBool("AutoExecute", False))
+        self._show_code.setChecked(prefs.GetBool("ShowCode", True))
         self._max_retries.setValue(prefs.GetInt("MaxRetries", 3))
         self._on_provider_changed(self._provider.currentIndex())
