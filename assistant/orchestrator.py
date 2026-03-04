@@ -3,7 +3,7 @@
 import FreeCAD
 from PySide import QtCore
 
-from assistant.plan_parser import parse_response, extract_code_block
+from assistant._plan_parser_shim import parse_response, extract_code_block
 
 
 # States

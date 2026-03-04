@@ -1,0 +1,12 @@
+[package]
+name = "freecad-assistant-core"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "freecad_assistant_core"
+crate-type = ["cdylib"]
+
+[dependencies]
+pyo3 = { version = "0.25", features = ["extension-module"] }
+regex = "1"
