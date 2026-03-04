@@ -114,6 +114,14 @@ class ChatWidget(QtWidgets.QWidget):
         if prefs.GetBool("AutoExecute", False):
             for idx in range(start_idx, len(self._code_blocks)):
                 self._execute_code(idx)
+                # Auto-retry on failure
+                if idx in self._exec_results:
+                    success, _stdout, stderr = self._exec_results[idx]
+                    if not success and idx < len(self._code_blocks):
+                        self._get_orchestrator().retry_direct(
+                            self._code_blocks[idx], stderr
+                        )
+                        break  # orchestrator takes over
 
     def _on_plan_received(self, plan, preamble):
         self._send_btn.setEnabled(True)

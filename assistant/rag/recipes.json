@@ -664,5 +664,77 @@
     "description": "Undo or redo the last operation on the document.",
     "code": "doc.undo()\n# To redo:\n# doc.redo()",
     "tags": ["undo", "redo", "document", "history"]
+  },
+  {
+    "title": "Create an Arch Wall",
+    "description": "Create an architectural wall with specified dimensions.",
+    "code": "import Arch\nwall = Arch.makeWall(None, length=4000, width=200, height=3000, name=\"Wall\")\ndoc.recompute()",
+    "tags": ["Arch", "BIM", "wall", "architecture"]
+  },
+  {
+    "title": "Create an Arch Wall from a line",
+    "description": "Create a wall by extruding a Draft line (baseline) to a wall.",
+    "code": "import Arch\nbaseline = Draft.make_wire([FreeCAD.Vector(0, 0, 0), FreeCAD.Vector(4000, 0, 0)])\nwall = Arch.makeWall(baseline, width=200, height=3000, name=\"Wall\")\ndoc.recompute()",
+    "tags": ["Arch", "BIM", "wall", "wire", "baseline"]
+  },
+  {
+    "title": "Create an Arch Window",
+    "description": "Create a window in a wall using the Arch workbench.",
+    "code": "import Arch\nwall = doc.getObject(\"Wall\")\nwindow = Arch.makeWindowPreset(\"Open 2-pane\", width=1200, height=1000, h1=100, h2=100, h3=100, w1=200, w2=100, o1=0, o2=100)\nwindow.Hosts = [wall]\nwindow.Placement.Base = FreeCAD.Vector(1000, 0, 800)\ndoc.recompute()",
+    "tags": ["Arch", "BIM", "window", "opening"]
+  },
+  {
+    "title": "Create an Arch Door",
+    "description": "Create a door opening in a wall.",
+    "code": "import Arch\nwall = doc.getObject(\"Wall\")\ndoor = Arch.makeWindowPreset(\"Simple door\", width=900, height=2100, h1=100, h2=100, h3=100, w1=200, w2=100, o1=0, o2=100)\ndoor.Hosts = [wall]\ndoor.Placement.Base = FreeCAD.Vector(2000, 0, 0)\ndoc.recompute()",
+    "tags": ["Arch", "BIM", "door", "opening"]
+  },
+  {
+    "title": "Create an Arch Structure (column or beam)",
+    "description": "Create a structural element like a column or beam.",
+    "code": "import Arch\n# Column\ncolumn = Arch.makeStructure(None, length=300, width=300, height=3000, name=\"Column\")\ncolumn.Placement.Base = FreeCAD.Vector(0, 0, 0)\n\n# Beam\nbeam = Arch.makeStructure(None, length=4000, width=200, height=300, name=\"Beam\")\nbeam.Placement.Base = FreeCAD.Vector(0, 0, 3000)\nbeam.Role = \"Beam\"\ndoc.recompute()",
+    "tags": ["Arch", "BIM", "structure", "column", "beam"]
+  },
+  {
+    "title": "Create an Arch Floor (BuildingPart)",
+    "description": "Create a floor/storey to organize building elements.",
+    "code": "import Arch\nfloor = Arch.makeFloor([doc.getObject(\"Wall\")])\nfloor.Label = \"Ground Floor\"\ndoc.recompute()",
+    "tags": ["Arch", "BIM", "floor", "storey", "building"]
+  },
+  {
+    "title": "Create an Arch Building",
+    "description": "Create a building container for floors and elements.",
+    "code": "import Arch\nbuilding = Arch.makeBuilding([doc.getObject(\"Floor\")])\nbuilding.Label = \"My Building\"\ndoc.recompute()",
+    "tags": ["Arch", "BIM", "building", "container"]
+  },
+  {
+    "title": "Create an Arch Site",
+    "description": "Create a site container for buildings.",
+    "code": "import Arch\nsite = Arch.makeSite([doc.getObject(\"Building\")])\nsite.Label = \"My Site\"\ndoc.recompute()",
+    "tags": ["Arch", "BIM", "site", "terrain"]
+  },
+  {
+    "title": "Create an Arch Roof",
+    "description": "Create a roof from a wire outline.",
+    "code": "import Arch\n# Outline of the roof footprint\npts = [FreeCAD.Vector(0, 0, 3000), FreeCAD.Vector(5000, 0, 3000),\n       FreeCAD.Vector(5000, 4000, 3000), FreeCAD.Vector(0, 4000, 3000)]\nwire = Draft.make_wire(pts, closed=True)\nroof = Arch.makeRoof(wire, angles=[45, 45, 45, 45])\ndoc.recompute()",
+    "tags": ["Arch", "BIM", "roof", "pitched"]
+  },
+  {
+    "title": "Create an Arch Slab (floor slab)",
+    "description": "Create a concrete floor slab from a wire outline.",
+    "code": "import Arch\npts = [FreeCAD.Vector(0, 0, 0), FreeCAD.Vector(5000, 0, 0),\n       FreeCAD.Vector(5000, 4000, 0), FreeCAD.Vector(0, 4000, 0)]\nwire = Draft.make_wire(pts, closed=True)\nslab = Arch.makeStructure(wire, height=200)\nslab.Role = \"Slab\"\nslab.Label = \"FloorSlab\"\ndoc.recompute()",
+    "tags": ["Arch", "BIM", "slab", "floor", "structure"]
+  },
+  {
+    "title": "Create Arch Stairs",
+    "description": "Create a staircase with specified parameters.",
+    "code": "import Arch\nstairs = Arch.makeStairs(None, length=3000, width=1000, height=3000, steps=15)\nstairs.Label = \"Stairs\"\ndoc.recompute()",
+    "tags": ["Arch", "BIM", "stairs", "staircase"]
+  },
+  {
+    "title": "Export to IFC (BIM exchange format)",
+    "description": "Export the model to IFC format for BIM interoperability.",
+    "code": "import importIFC\nimportIFC.export([doc.getObject(\"Site\")], \"/tmp/model.ifc\")",
+    "tags": ["Arch", "BIM", "IFC", "export", "interoperability"]
   }
 ]

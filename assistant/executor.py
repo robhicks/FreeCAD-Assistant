@@ -52,7 +52,7 @@ class CodeExecutor:
             "doc": doc,
         }
         # Load common modules into namespace
-        for mod_name in ("Part", "PartDesign", "Sketcher", "Draft", "Mesh"):
+        for mod_name in ("Part", "PartDesign", "Sketcher", "Draft", "Mesh", "Arch"):
             try:
                 ns[mod_name] = __import__(mod_name)
             except ImportError:

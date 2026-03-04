@@ -4,7 +4,10 @@ import json
 import os
 
 # Modules to introspect at runtime inside FreeCAD
-_MODULES = ["FreeCAD", "FreeCADGui", "Part", "PartDesign", "Sketcher", "Draft", "Mesh"]
+_MODULES = [
+    "FreeCAD", "FreeCADGui", "Part", "PartDesign", "Sketcher",
+    "Draft", "Mesh", "Arch", "BIM",
+]
 
 
 def introspect_modules():
